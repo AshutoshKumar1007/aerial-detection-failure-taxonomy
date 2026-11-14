@@ -1,0 +1,103 @@
+# Stage 1 baseline: COCO-initialised YOLO11s trained on native-resolution tiles, evaluated on full images.
+#
+# Usage: load_config(".../configs/baseline.yaml", ".../configs/env/<machine>.yaml", overrides=[...])
+# Later experiments inherit with `_base_: baseline.yaml` and state only what they change.
+# Relative paths under `paths:` resolve against the directory of the file that sets them.
+
+experiment:
+  name: B0              # run id = <name>_s<seed>, under <work_dir>/runs/
+  seed: 0
+
+paths:
+  split_file: splits/dev_s0.json      # ships with the code: every run and machine uses the identical split
+  data_root: null                     # set by configs/env/*.yaml (folder holding classmap.txt, train/, val/)
+  work_dir: null                      # set by configs/env/*.yaml; tiles/, runs/, pretrained/ are created here
+
+runtime:          # where/how the code runs; excluded from the run fingerprint (set by configs/env/*.yaml)
+  device: 0
+  workers: 4      # dataloader workers (training) and processes (tile building)
+
+split:            # dev = held-out part of train used for every model-selection decision; val is only reported
+  dev_frac: 0.15
+  seed: 0
+  n_trials: 20000
+  dense_min_objects: 50               # images with >= this many objects count as "dense" when stratifying
+  min_dev_instances:                  # floors so rare classes give a usable AP on dev
+    Truck w/Flatbed: 80
+    Truck Tractor: 70
+    Truck w/Liquid: 25
+
+tiling:           # training tiles (train + dev images only; val is never tiled for training)
+  size: 1024
+  overlap: 200            # > largest object side (161 px), so every object lies whole in at least one tile
+  min_visibility: 0.5     # a box cut by the tile border is kept (clipped) if >= this share of its area is inside
+  negative_frac: 0.25     # share of object-free tiles kept (deterministic per tile id)
+  max_nodata_frac: 0.5    # object-free tiles with more black no-data pixels than this are discarded
+
+model:
+  weights: yolo11s.pt     # COCO-pretrained Ultralytics release asset, downloaded once to <work_dir>/pretrained/
+
+train:
+  checkpoint: last        # fixed schedule; no checkpoint selection on any metric
+  args:                   # passed verbatim to ultralytics YOLO.train (all listed so the run is fully specified)
+    epochs: 50
+    imgsz: 1024           # = tiling.size -> native resolution
+    batch: 8              # fits a 6 GB GPU at 1024 px; gradients accumulate to nbs
+    nbs: 64
+    optimizer: SGD
+    lr0: 0.01
+    lrf: 0.01
+    momentum: 0.937
+    weight_decay: 0.0005
+    warmup_epochs: 3.0
+    warmup_momentum: 0.8
+    warmup_bias_lr: 0.1
+    cos_lr: false
+    box: 7.5
+    cls: 0.5
+    dfl: 1.5
+    hsv_h: 0.015
+    hsv_s: 0.7
+    hsv_v: 0.4
+    degrees: 0.0
+    translate: 0.1
+    scale: 0.5
+    shear: 0.0
+    perspective: 0.0
+    flipud: 0.5           # Ultralytics default is 0.0; overhead imagery has no canonical "up"
+    fliplr: 0.5
+    mosaic: 1.0
+    close_mosaic: 10
+    mixup: 0.0
+    cutmix: 0.0
+    copy_paste: 0.0
+    multi_scale: 0.0
+    rect: false
+    cache: false
+    amp: true
+    deterministic: true
+    val: true             # tile-level curves on dev tiles (monitoring only; reported metrics are full-image)
+    patience: 0           # no early stopping
+    plots: true
+
+inference:        # full image -> tiles -> detector -> stitched detections
+  tile: 1024
+  overlap: 200
+  imgsz: 1024             # imgsz / tile = up-sampling factor (1.0 here)
+  conf: 0.001             # keep the whole precision-recall curve
+  iou: 0.6                # NMS inside each tile (Ultralytics)
+  multi_label: false      # true: NMS keeps every class above conf for a box (as Ultralytics' validator does), not only the best
+  merge_iou: 0.6          # NMS across tiles after stitching (class-aware)
+  # optional keys, absent here (= False / the model's default): agnostic_nms (tile NMS across classes), merge_agnostic (merge across classes),
+  # head (YOLO26: one2many | one2one). See src/auric/model/predict.py.
+  edge_margin: 0          # > 0: drop boxes within this many px of an interior tile border before merging
+  max_det_tile: 1000
+  max_det_image: 2000     # val has up to 167 objects per image; never truncate the PR curve
+  batch: 8                # tiles per forward pass
+  fp16: true
+
+evaluation:
+  splits: [dev, val]
+  size_bins: [16, 32]     # sqrt(box area) in source px: xs < 16 <= s < 32 <= m
+  bootstrap: 1000         # image-level resamples for confidence intervals
+  seed: 0

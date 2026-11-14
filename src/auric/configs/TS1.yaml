@@ -1,0 +1,36 @@
+# TS1: two-stage pipeline. Stage 1 = the T1 single-class detector (already configured in T1.yaml), run at
+# inference with class-agnostic merge; stage 2 = a crop classifier (configs below) re-labels each box.
+#
+# Decision this run makes (assignment 5.1; typing costs about two-thirds of the AP, so a stronger, decoupled
+# classifier was the direction with headroom). Reports three numbers on dev (val alongside):
+#   detection ceiling  = AP50 of stage-1 boxes scored class-agnostic   (control: D1/A1 class-agnostic 0.25-0.30)
+#   two-stage mAP50     = AP50 after stage-2 labels them
+#   classification cost = detection ceiling - two-stage mAP50
+# Pre-declared rule: two-stage dev mAP50 >= D1 + its CI width (>~0.13) => decoupling + a strong classifier beats the
+# fused head and becomes the main line; within the (unmeasured, so run a seed first) noise band => no better.
+#
+# Stage 1 weights come from the T1 run (run id T1_s0). If T1 has not been trained, train it first (it is just
+# D1 + single_cls). Inference uses merge_agnostic so one truck is never split across classes before stage 2.
+_base_: D1.yaml
+
+experiment:
+  name: TS1
+
+inference:
+  merge_agnostic: true        # stage 1 is class-agnostic; keep every well-localised box for the classifier
+  multi_label: false          # hedging is handled in stage 2 via two_stage.emit_topk, not in NMS
+
+two_stage:
+  stage1_run: T1_s0           # trained single-class detector; produces the agnostic boxes
+  classifier:
+    backbone: convnext_tiny   # ImageNet; swap to resnet50 if memory-bound. NOT xView/DOTA-trucks (integrity rule)
+    context: 3.0              # crop side = context * object size; adds the trailer/bed a tight crop cuts off
+    min_px: 24
+    out_px: 128
+    epochs: 20
+    lr: 0.0003
+    batch: 128
+    class_balanced: true      # inverse-sqrt-frequency CE weight (the sampler cannot rebalance; weight the loss)
+  assembly:
+    alpha: 0.5                # final score = det_score**alpha * p(class)**(1-alpha)
+    emit_topk: 2              # emit best + 2nd class per box (MX: the 2nd class was worth +8-14% dev mAP)

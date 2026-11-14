@@ -1,0 +1,36 @@
+# Y2: the whole-scene formulation (as the xView scenes are delivered) instead of tiles. Everything else is Y1.
+#
+# Training: Ultralytics reads the source images themselves (no tile cache). It letterboxes each scene so that its longer side is
+# train.args.imgsz, so a scene longer than imgsz is shrunk and a shorter one enlarged, and one scene is one sample (mosaic still
+# combines four). Scale of the 443 train scenes at imgsz 3008: median 0.93 (longest side 3228), 10th-90th percentile 0.73-1.04,
+# smallest 0.59 (5119 px); in val the largest scene (7204 px) is shrunk to 0.42, i.e. its 20 px trucks to ~8 px. The notebook tabulates
+# this per image: it is the price of feeding scenes whole, and tiling avoids it.
+# Inference: the same scene-to-network scaling, one forward pass, no tiling and no merge (tile 8192 > the largest side, so there is one
+# window). Training and inference must use the same imgsz.
+#
+# Optimisation: nbs = batch, so every batch is an update (the D1 principle): batch 2 -> ~190 updates per epoch, ~9,500 in 50 epochs
+# (D1: ~10,000). 3008 px x batch 2 is 18.1 M pixels per step against D1's 16.8 M (peak 10-11.9 GB of the T4's 14.9 GB), so it should
+# fit; it has NOT been run. If it runs out of memory, batch 1 (nbs 1) is the next step, not a smaller imgsz.
+# train.args.max_det only raises the cap of Ultralytics' dev-scene validation (default 300; train scenes hold up to 390 objects).
+_base_: Y1.yaml
+
+experiment:
+  name: Y2
+
+formulation:
+  mode: scenes
+
+train:
+  args:
+    imgsz: 3008           # multiple of 32; about the median scene side (3228), the largest size expected to fit at batch 2
+    batch: 2
+    nbs: 2
+    max_det: 1000
+
+inference:
+  tile: 8192
+  overlap: 0
+  imgsz: 3008
+  max_det_tile: 5000
+  max_det_image: 5000
+  batch: 1

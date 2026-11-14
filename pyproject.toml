@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "auric"
+version = "0.2.0"
+description = "Tiled small-object detection of truck classes in overhead imagery"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy",
+    "pandas",
+    "opencv-python-headless",
+    "pyyaml",
+    "tqdm",
+    "torch",
+    "torchvision",
+    "ultralytics==8.4.179",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "pycocotools", "matplotlib"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+auric = ["configs/*.yaml", "configs/env/*.yaml", "configs/splits/*.json"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

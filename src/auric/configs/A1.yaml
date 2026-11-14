@@ -1,0 +1,19 @@
+# A1: 2x up-sampling. Tiles of 512 px are enlarged to the network's 1024 px input (train.args.imgsz and
+# inference.imgsz stay 1024), so a 22 px truck is seen as 44 px and a 16 px truck as 32 px: it covers 4x
+# as many cells on the finest (stride 8) feature map. Training and inference must use the same factor.
+# Everything else is B0 (batch 8, nbs 64, 50 epochs), except:
+#   * negative_frac 0.07: a 512 grid has ~37,000 object-free tiles (vs ~4,900 at 1024), so 0.25 would give
+#     ~9,000 negatives to ~6,300 positives. 0.07 keeps the share of negative tiles near B0's 31%.
+#   * ~2.4x as many tiles per epoch as B0, so an epoch takes ~2.4x as long (~3.5-4 h for 50 epochs on a T4).
+# The overlap stays 200 px (> largest object, 161 px), so every object is still whole in some tile.
+_base_: baseline.yaml
+
+experiment:
+  name: A1
+
+tiling:
+  size: 512
+  negative_frac: 0.07
+
+inference:
+  tile: 512

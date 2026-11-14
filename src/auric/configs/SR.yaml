@@ -1,0 +1,20 @@
+# SR: a RANDOM training subset (assignment 5.4). The D1 recipe unchanged (YOLO11s, tiles 1024, batch 16, nbs 12, 50 epochs, seed 0); the only
+# change is that the detector is trained on the tiles of a subset of the train_core images. Dev (monitoring) and val (reporting) are untouched.
+#
+# Size = labelled instances: `budget_frac` x the 6,525 train_core instances (0.5 -> ~3,260, 0.25 -> ~1,630, 0.125 -> ~815). Images are what is
+# dropped; the same fill rule is used by SC, so SR and SC at one budget cost the same number of labels (they differ in how many images that is).
+# The protocol, its success rule and the expectations were declared before any of these runs.
+#
+# One config, many runs: the run name, the budget and the subset seed are overrides, e.g. (notebook 01, OVERRIDES)
+#     ["experiment.name=SR25_k1", "subset.budget_frac=0.25", "subset.seed=1"]
+# Convention: SR<budget in %>_k<subset seed> (the training seed stays experiment.seed = 0, so the arms differ only in the images).
+# The full-data reference is D1 itself with training seeds 0, 1, 2 (`experiment.seed=1`, run id D1_s1), which also gives the noise floor.
+_base_: D1.yaml
+
+experiment:
+  name: SR
+
+subset:
+  method: random
+  budget_frac: 0.25
+  seed: 0

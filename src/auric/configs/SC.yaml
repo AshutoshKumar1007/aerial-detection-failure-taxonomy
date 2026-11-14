@@ -1,0 +1,21 @@
+# SC: a COVERAGE-selected training subset (assignment 5.4). Same recipe, budget and fill rule as SR; only the order in which images are taken differs.
+#
+# Method (declared before any subset run, auric/data/subsets.py). Cells = class x size bucket (xs < 16 px, s 16-32, m >= 32; 15 cells). Each cell has a
+# target of `budget_frac` of its instances, raised to at most `min_cell` (20) instances so that rare cells are not left empty (a cell with fewer
+# instances is taken whole). The next image is the one with the most still-missing cell mass per labelled instance it costs,
+#     gain(i) = sum_c min(n_ic, deficit_c) / target_c ,   score(i) = gain(i) / n_i ;
+# images that fill nothing are added in random order until 98% of the budget is spent.
+# Why this method: the evidence says the rare classes live in few, crowded images (Tractor: one image holds 27%, ten hold 60%) so a random subset
+# of a small budget often misses them (6.25% budget: Tractor 8-16 instances, Liquid 4-15 across three random seeds); the cost-per-label score prefers sparse scenes
+# whose few labels fill a missing cell, so it also keeps many more distinct scenes than a random subset of the same label budget (e.g. 180 vs ~102 images at 25%).
+# Deterministic: `subset.seed` only orders the final random fill. Run name convention: SC<budget in %> (e.g. experiment.name=SC25, subset.budget_frac=0.25).
+_base_: D1.yaml
+
+experiment:
+  name: SC
+
+subset:
+  method: coverage
+  budget_frac: 0.25
+  seed: 0
+  min_cell: 20

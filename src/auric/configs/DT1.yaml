@@ -1,0 +1,19 @@
+# DT1: the T1 single-class detector initialised from a DOTA-pretrained backbone instead of COCO.
+#
+# Question (declared ablation): is the COCO representation the limit? Swap ONLY the init weights;
+# everything else is T1 (D1 recipe, single_cls, 1024 tiles, 50 epochs, seed 0). Aerial features (DOTA has
+# large-vehicle / small-vehicle) replace COCO's. Control: T1 (same recipe, COCO init), class-agnostic AP50
+# dev/val 0.299 / 0.297 (from D1; T1's own control value once T1 is run). Outcome = class-agnostic AP50 and
+# max recall on dev (val alongside). DOTA is not xView, so this is a declared init, not a contaminated bound.
+#
+# Prereq: build the init once (needs internet for the OBB asset), then run:
+#   from auric.model.pretrain import build_dota_transfer_init
+#   build_dota_transfer_init(PRETRAINED_DIR)        # -> work/pretrained/yolo11s_dota.pt
+# fetch_pretrained finds that local file by name; there is no Ultralytics asset called yolo11s_dota.pt.
+_base_: T1.yaml
+
+experiment:
+  name: DT1
+
+model:
+  weights: yolo11s_dota.pt

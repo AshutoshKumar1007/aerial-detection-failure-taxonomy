@@ -1,0 +1,16 @@
+# Y6: the two imbalance levers together, Y5 sampler (alpha 0) + Y3 class weights (cls_pw 0.5). Everything else is Y1.
+#
+# The class weights are computed on the expected class counts of the sampler's draws, not on the label counts, so a class is not
+# corrected twice. After the sampler (alpha 0) the expected instance shares are 36 / 34 / 9 / 17 / 4 % (Cargo / Box / Flatbed / Tractor / Liquid)
+# and (1 / n) ** 0.5 on them gives 0.58 / 0.60 / 1.17 / 0.84 / 1.81 instead of Y3's 0.43 / 0.55 / 1.04 / 0.98 / 2.00. Whether the
+# combination adds anything to either lever alone is the question of this run: compare with Y3 and Y5, not only with Y1.
+_base_: Y1.yaml
+
+experiment:
+  name: Y6
+
+train:
+  args:
+    cls_pw: 0.5
+  sampler:
+    alpha: 0.0

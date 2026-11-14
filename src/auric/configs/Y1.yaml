@@ -1,0 +1,23 @@
+# Y1: YOLO26s (COCO-initialised) on tiles, with the D1 recipe unchanged (tiles 1024, batch 16, nbs 12, 50 epochs, seed 0, SGD lr0 0.01).
+# Only the model differs from D1 (YOLO11s), so Y1 vs D1 isolates the architecture. It is the control of the Y2-Y6 experiments.
+#
+# What YOLO26 changes (Ultralytics 8.4.179; read from the source, nn/modules/head.py, utils/loss.py, engine/validator.py):
+#   * two heads on the same features: a one-to-many head (TAL top-10 assignment, NMS needed) and a one-to-one head (top-1 assignment,
+#     NMS-free). The one-to-one head is fed detached features, so the backbone is trained by the one-to-many loss only.
+#   * the loss is  w_o2m * L_o2m + (1 - w_o2m) * L_o2o  with w_o2m = 0.8 falling linearly to 0.1 over the epochs. The losses logged
+#     in results.csv / the progress bar are those of the one-to-one head. (Not changed here; see the Y1 notes in notebook 01.)
+#   * reg_max = 1: boxes are regressed directly (no DFL); the "dfl" loss slot holds an L1 loss weighted by train.args.dfl.
+#   * no objectness branch (as YOLO11): a box's confidence is its best class score.
+# Which head is used where: with `nms` unset (the default, kept) Ultralytics' validator and predictor use the one-to-many head with
+# NMS; `nms: false` would select the one-to-one head. So the dev-tile curves logged during training are those of the one-to-many head,
+# and inference.head below states the same choice for full-image inference. The other head is compared in notebook 02, not assumed.
+_base_: D1.yaml
+
+experiment:
+  name: Y1
+
+model:
+  weights: yolo26s.pt
+
+inference:
+  head: one2many          # one2many (NMS, class-aware inside tiles and in the merge) | one2one (NMS-free); see notebook 02

@@ -1,0 +1,17 @@
+# Y4: Y1 with a larger classification-loss gain (train.args.cls 0.5 -> 2.0). The loss is box 7.5 * L_CIoU + cls * L_BCE + dfl 1.5 * L_L1.
+#
+# Why this is worth a run (docs/04_research_decision_report.md): localisation is not what limits the score (IoU-0.5 AP, and A1/D1 against
+# B0 show neither resolution nor update count matters), whereas classification is: class-agnostic AP50 is 0.25-0.30 while class-aware mAP50
+# is 0.10, and classification with perfect boxes only reaches mAP ~0.38. With cls 0.5 against box 7.5 the gradient budget goes mainly to the
+# box. A larger gain gives the classification head (and, through the one-to-many loss, the backbone) more of it. The gain is not normalised
+# (it also acts like a larger step for the classification branch); Ultralytics clips the gradient norm at 10.
+# One point is run here (4x). cls 1.0 and cls 4.0 are run-time overrides (train.args.cls=...) for a dose-response if this one moves the score;
+# if it does not, the finding is that the loss weights are not the limit. Keep the run names distinct (experiment.name).
+_base_: Y1.yaml
+
+experiment:
+  name: Y4
+
+train:
+  args:
+    cls: 2.0

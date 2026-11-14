@@ -1,0 +1,35 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+.venv/
+env/
+venv/
+ENV/
+
+# Testing and caches
+.pytest_cache/
+.coverage
+htmlcov/
+.ipynb_checkpoints/
+
+# Runtime outputs & scratch workspaces
+work/
+outputs/
+*.log
+
+# Large datasets & binaries (keep README instructions)
+Dataset/CV_Assignment_AAL/
+*.zip
+*.tar.gz
+*.tar
+
+# Company proprietary assessment brief
+*.pdf
+
+# OS specific files
+.DS_Store
+Thumbs.db
+desktop.ini

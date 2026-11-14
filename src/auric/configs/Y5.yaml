@@ -1,0 +1,26 @@
+# Y5: Y1 + class-aware sampling of the training samples (train.sampler, src/auric/data/sampling.py).
+#
+# The tile cache's negative_frac only decides how many object-free tiles exist; it does not touch which classes the detector sees. Here
+# the draw of the 3,201 samples of an epoch is changed (the epoch keeps its length): object-free tiles keep their share (31%) of the draws;
+# the others are drawn class first (class c with probability proportional to n_c ** alpha), then uniformly among the tiles that contain it.
+# alpha 0 (here) is the literal class-aware sampler: every class is drawn equally often.
+#
+# What it can and cannot do, computed on the train_core tile cache (src/auric/data/sampling.py, notebook 01 stage 4):
+#                                  Cargo  Box   Flatbed Tractor Liquid
+#   share of instances, plain      49.3   30.3   8.5     9.6     2.3 %
+#   share of instances, alpha 0    36.2   34.0   8.9    17.2     3.7 %     (alpha 0.5: 38.9 / 33.9 / 8.9 / 15.6 / 2.8)
+#   draws per epoch of each tile   1.01   1.43   1.90    2.73    3.58      (plain: 1.00; alpha 0.5: 1.03 / 1.44 / 1.61 / 2.31 / 2.17)
+# The tiles that hold a rare class are crowded with Cargo and Box, so oversampling them moves the instance shares much less than the
+# class draw probabilities (20% each) suggest: Liquid reaches 3.7%, not 20%, and Flatbed hardly changes. The sampler raises how often the
+# rare-class tiles are seen (up to 3.6x per epoch, ~180 times over 50 epochs, softened by mosaic and flips); it cannot make the classes
+# balanced. Class weights (Y3) act on the loss and have no such limit, hence Y6. A balanced class share would need the rare objects in
+# smaller windows (crops around them), which is a change to the tile cache, not to the sampler.
+# Pre-declared reading: as for Y3 (paired dev CI above 0, no class loses beyond its CI). alpha 0.5 is a run-time override.
+_base_: Y1.yaml
+
+experiment:
+  name: Y5
+
+train:
+  sampler:
+    alpha: 0.0

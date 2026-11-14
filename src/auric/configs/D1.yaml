@@ -1,0 +1,15 @@
+# D1: more optimiser updates per epoch. B0 uses batch 8 with gradient accumulation to nbs 64, i.e. one weight
+# update per 8 batches (~50 per epoch, ~2,500 in 50 epochs) and leaves 8 of the T4's 15 GB unused.
+# Here nbs = batch, so every batch is an update: batch 16 -> ~201 updates per epoch (~10,000 in total); weight decay is scaled by
+# Ultralytics to 0.0005 * 16 / 12. The run that produced the D1 results used batch 16 (a notebook override of the original batch 12);
+# it peaked at 10-11.9 GB of the T4's 14.9 GB, so this file now states what was actually run.
+# Everything else is B0, so any difference in dev mAP50 is due to the update count / batch size.
+_base_: baseline.yaml
+
+experiment:
+  name: D1
+
+train:
+  args:
+    batch: 16
+    nbs: 12

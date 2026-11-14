@@ -1,0 +1,18 @@
+# Python 3.12 (verified locally: 3.12.10, Windows, RTX 4050 6 GB). The Kaggle training runs used Python 3.13 with the same
+# torch / ultralytics versions on a Tesla T4 (see README.md, "Environment").
+#
+# 1) torch + torchvision: install the build that matches the machine's CUDA first, e.g.
+#      pip install torch==2.11.0 torchvision==0.26.0 --index-url https://download.pytorch.org/whl/cu128
+#    (CPU only: pip install torch==2.11.0 torchvision==0.26.0)
+# 2) then: pip install -r requirements.txt
+ultralytics==8.4.179        # pinned: the inference code mirrors this version's NMS (src/auric/model/predict.py)
+numpy==2.5.4
+pandas==3.0.6
+opencv-python-headless==5.0.0.93
+pyyaml==6.0.3
+tqdm==4.70.1
+
+# notebooks and tests
+matplotlib==3.11.2
+pycocotools==2.0.11         # tests: the evaluator is checked against pycocotools
+pytest==9.1.1

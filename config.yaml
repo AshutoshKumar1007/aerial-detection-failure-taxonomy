@@ -1,0 +1,49 @@
+# Reproduction config: everything reproduce.py needs to know, in one place.
+#
+# Relative paths resolve against the folder of this file (the submission root). Nothing is searched for: a path that is
+# wrong or missing stops the script with a message naming it. Every key below can also be overridden on the command line
+# (python reproduce.py --help), which is how to run from a read-only copy (e.g. a Kaggle input).
+
+runtime: local              # local | kaggle: selects the paths under `runtimes`
+model: D1                   # D1 | A1: the two proposed final models (see REPORT.md, section 5)
+variant: multi_label        # multi_label (the reported final setting) | single (the setting of the training notebooks)
+splits: [val]               # val (the reported result) and/or dev (the held-out part of train used for every decision)
+
+runtimes:
+  local:
+    dataset_root: Dataset/CV_Assignment_AAL      # must contain classmap.txt, train/{images,labels}, val/{images,labels}
+    weights_dir: weights                         # holds the files named under models.<name>.weights
+    output_dir: outputs                          # created; one folder per model, variant and split
+    device: 0                                    # CUDA device index, or cpu (slow)
+  kaggle:
+    dataset_root: /kaggle/input/datasets/shriramprajapati/auricdataset/CV_Assignment_AAL   # the attached dataset
+    weights_dir: weights                         # relative: <submission>/weights (the submission uploaded as a dataset)
+    output_dir: /kaggle/working/outputs          # inputs are read-only on Kaggle
+    device: 0
+
+# The final models. `experiment` is the training config in src/auric/configs; its `inference` section is what the
+# checkpoint was evaluated with. `sha256` identifies the exact checkpoint behind the reported numbers (checked when set).
+# `reported` are the numbers in REPORT.md (mAP50, COCO 101-point, IoU 0.5), printed next to the reproduced ones.
+models:
+  D1:
+    experiment: D1.yaml
+    weights: D1_last.pt
+    sha256: 884dd241ae76cc9a7af40e3509398ae6e209970e1f694606e49b5a15de89b563
+    reported:
+      single: {dev: 0.101, val: 0.088}
+      multi_label: {dev: 0.115, val: 0.106}
+  A1:
+    experiment: A1.yaml
+    weights: A1_last.pt
+    sha256: a7e35b6cb65bf8e401e20dd0061a9afb1541bbff71bb693e40ba6c08f6200d6c
+    reported:
+      single: {dev: 0.100, val: 0.131}
+      multi_label: {dev: 0.108, val: 0.142}
+
+# Inference variants: overrides of the experiment's `inference` section.
+#   single       each box keeps its best class (as evaluated in the training notebooks)
+#   multi_label  every class above conf is kept for a box (as Ultralytics' own validator does); the per-image cap is
+#                raised because it emits several times more low-score boxes (experiment MX in docs/EXPERIMENTS.md)
+variants:
+  single: {}
+  multi_label: {multi_label: true, max_det_image: 5000}

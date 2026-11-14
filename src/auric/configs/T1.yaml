@@ -1,0 +1,21 @@
+# T1: single-class ("is it one of these trucks") detector. Everything is D1 (tiles 1024, batch 16, nbs 12, 50 epochs, seed 0) except
+# that Ultralytics collapses the five classes to one (train.args.single_cls: labels -> class 0, nc = 1, names {0: item}).
+#
+# Question (docs/04_research_decision_report.md, H4 / step 1): is the multi-class objective costing *detection*? YOLOv8/11 heads have
+# no separate objectness branch, so with labels that are ambiguous between classes the confidence of a clearly present truck is split
+# between classes. If a one-class model finds the same objects with clearly higher class-agnostic AP50, detection should be
+# separated from classification.
+#
+# Reading the evaluation: every prediction has class 0, so the class-aware tables (per-class AP50, mAP50, confusion, outcomes) compare
+# class 0 with "Cargo" only and are meaningless. The outcome is "AP50 class-agnostic" (and recall/precision at conf*), on dev; val is
+# reported next to it. D1 is the control because it is the finished full-schedule run (B0 was only a ten-epoch snapshot); compare with
+# `evaluation.compare` (paired bootstrap), class-agnostic AP50 dev / val of D1: 0.299 / 0.297 (A1 0.252 / 0.303).
+# Pre-declared rule: dev >= 0.40 supports the hypothesis; dev <= 0.32 does not; in between is inconclusive (seed noise is unmeasured).
+_base_: D1.yaml
+
+experiment:
+  name: T1
+
+train:
+  args:
+    single_cls: true

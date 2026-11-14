@@ -1,0 +1,20 @@
+# Y3: Y1 + class weights in the classification loss (Ultralytics train.args.cls_pw).
+#
+# The classification BCE of class c is multiplied by (1 / n_c) ** cls_pw, scaled so that the five weights average 1. It scales the whole
+# class channel (its positives and its negatives alike); it is not a positive-only `pos_weight`. n_c are the instance counts of the label
+# files of the train tiles (train_core, 3,201 tiles): Cargo 5534, Box 3397, Flatbed 954, Tractor 1075, Liquid 258 (49 / 30 / 9 / 10 / 2 %;
+# overlapping tiles repeat objects, so these exceed the source counts 3773 / 2366 / 662 / 625 / 192). Resulting weights:
+#     cls_pw 0.5:  Cargo 0.43  Box 0.55  Flatbed 1.04  Tractor 0.98  Liquid 2.00   (4.6x between the extremes)
+#     cls_pw 1.0:  Cargo 0.14  Box 0.23  Flatbed 0.83  Tractor 0.73  Liquid 3.06   (21x; Cargo, which carries detection, is cut to a seventh)
+# 0.5 is the middle of the range and is the arm run here; 1.0 is a run-time override (train.args.cls_pw=1.0) if 0.5 shows an effect.
+# The weights are computed by the trainer and written to train/imbalance.json.
+# Evidence that it is needed: on the dev tiles D1 recalls 1.3% of Tractors and 0% of Liquids (Ultralytics' table at the last epoch).
+# Pre-declared reading: it is kept if the paired dev mAP50 difference to Y1 has a CI above 0 and no class loses more than its CI.
+_base_: Y1.yaml
+
+experiment:
+  name: Y3
+
+train:
+  args:
+    cls_pw: 0.5
